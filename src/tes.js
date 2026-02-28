@@ -16,3 +16,21 @@ async function init() {
 }
 
 init();
+
+/*
+        "animes": {
+            "dir": [
+                {
+                    "animek": [
+                        {
+                            "name": "Random Waifu",
+                            "endpoint": "/api/random/waifu",
+                            "filename": "waifu",
+                            "method": "GET",
+                            "params": []
+                        }
+                    ]
+                }
+            ]
+        }
+        */

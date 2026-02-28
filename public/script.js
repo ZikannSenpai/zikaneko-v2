@@ -302,136 +302,181 @@ function setSearch() {
     });
 }
 
-function loadEnd(tags) {
-    const container = document.getElementById("api-container");
-    if (!container) return;
+function buildTree(tags) {
+    const root = { name: "__root__", children: new Map(), routes: [] };
+    for (const [key, routes] of Object.entries(tags)) {
+        const parts = key
+            .split("/")
+            .map(p => p.trim())
+            .filter(Boolean);
+        let node = root;
+        for (const part of parts) {
+            if (!node.children.has(part)) {
+                node.children.set(part, {
+                    name: part,
+                    children: new Map(),
+                    routes: []
+                });
+            }
+            node = node.children.get(part);
+        }
+        node.routes = node.routes.concat(routes);
+    }
+    return root;
+}
 
-    container.innerHTML = "";
+// safe id generator
+function safeIdForPath(path) {
+    return "cat-" + path.replace(/\s+/g, "-").replace(/[^a-zA-Z0-9\-_]/g, "-");
+}
 
-    for (const [cat, routes] of Object.entries(tags)) {
+// render node recursively into a container
+function renderNode(node, container, pathSoFar = "") {
+    for (const child of node.children.values()) {
+        const fullPath = pathSoFar ? `${pathSoFar}/${child.name}` : child.name;
+        const safeId = safeIdForPath(fullPath);
+
+        // section header
         const section = document.createElement("div");
         section.className = "api-section w-full";
 
-        const catId = `cat-${cat.replace(/\s+/g, "-")}`;
-
         const headerBtn = `
-            <button onclick="toggleCategory('${catId}')" class="w-full flex items-center justify-between bg-white text-primary p-4 rounded-lg shadow-hard border-2 border-primary mb-4 group hover:bg-gray-50 active:scale-[0.99] transition-all duration-150">
-                <div class="flex items-center gap-3">
-                    <i class="fa-solid fa-folder-open text-xl"></i>
-                    <h2 class="text-lg font-display font-bold uppercase tracking-wider">${cat}</h2>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span class="text-[10px] font-mono bg-primary/10 border border-primary/20 px-2 py-1 rounded text-primary font-bold">${routes.length} EP</span>
-                    <i id="arrow-${catId}" class="cat-arrow fa-solid fa-chevron-down transition-transform duration-300"></i>
-                </div>
-            </button>
-        `;
+      <button onclick="toggleCategory('${safeId}')" class="w-full flex items-center justify-between bg-white text-primary p-4 rounded-lg shadow-hard border-2 border-primary mb-4 group hover:bg-gray-50 active:scale-[0.99] transition-all duration-150">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-folder-open text-xl"></i>
+          <h2 class="text-lg font-display font-bold uppercase tracking-wider">${child.name}</h2>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-[10px] font-mono bg-primary/10 border border-primary/20 px-2 py-1 rounded text-primary font-bold">${child.routes.length} EP</span>
+          <i id="arrow-${safeId}" class="cat-arrow fa-solid fa-chevron-down transition-transform duration-300"></i>
+        </div>
+      </button>
+    `;
+        section.innerHTML = headerBtn;
 
+        // grid that will contain routes + nested folders
         const grid = document.createElement("div");
-        grid.id = `grid-${catId}`;
+        grid.id = `grid-${safeId}`;
         grid.className = "api-section-grid grid grid-cols-1 gap-4 hidden mb-8";
 
-        routes.forEach((route, idx) => {
-            const id = `${cat}-${idx}`.replace(/\s+/g, "-");
-            const searchTerms = `${route.name} ${route.endpoint} ${cat}`;
+        // render routes for this folder (if any)
+        if (child.routes?.length) {
+            child.routes.forEach((route, idx) => {
+                const id = `${safeId}-${idx}`.replace(/\s+/g, "-");
+                const searchTerms = `${route.name} ${route.endpoint} ${child.name}`;
 
-            let inputsHtml = "";
-            if (route.params?.length) {
-                inputsHtml =
-                    `<div class="bg-gray-50 p-4 border-t-2 border-primary/20 grid gap-3">` +
-                    route.params
-                        .map(
-                            p =>
-                                `<div class="relative">
-                        <div class="flex justify-between items-center mb-1">
-                            <label class="text-[10px] font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-                                <span class="w-1.5 h-1.5 bg-primary rounded-full inline-block"></span> ${p.name.toUpperCase()}
-                            </label>
-                            <span class="text-[9px] font-bold ${p.required ? "text-red-500" : "text-primary/60"}">${p.required ? "REQ" : "OPT"}</span>
-                        </div>
-                        <input type="text" id="input-${id}-${p.name}" placeholder="${p.description || "Value..."}" 
-                        class="w-full border-2 border-primary/20 p-2 font-mono text-xs focus:border-primary focus:outline-none transition-colors rounded bg-white">
-                     </div>`
-                        )
-                        .join("") +
-                    `</div>`;
-            }
+                let inputsHtml = "";
+                if (route.params?.length) {
+                    inputsHtml =
+                        `<div class="bg-gray-50 p-4 border-t-2 border-primary/20 grid gap-3">` +
+                        route.params
+                            .map(
+                                p =>
+                                    `<div class="relative">
+                      <div class="flex justify-between items-center mb-1">
+                          <label class="text-[10px] font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                              <span class="w-1.5 h-1.5 bg-primary rounded-full inline-block"></span> ${p.name.toUpperCase()}
+                          </label>
+                          <span class="text-[9px] font-bold ${p.required ? "text-red-500" : "text-primary/60"}">${p.required ? "REQ" : "OPT"}</span>
+                      </div>
+                      <input type="text" id="input-${id}-${p.name}" placeholder="${p.description || "Value..."}" 
+                      class="w-full border-2 border-primary/20 p-2 font-mono text-xs focus:border-primary focus:outline-none transition-colors rounded bg-white">
+                   </div>`
+                            )
+                            .join("") +
+                        `</div>`;
+                }
 
-            const methodColor =
-                route.method === "GET"
-                    ? "bg-sky-500"
-                    : route.method === "POST"
-                      ? "bg-green-500"
-                      : route.method === "DELETE"
-                        ? "bg-red-500"
-                        : "bg-orange-500";
+                const methodColor =
+                    route.method === "GET"
+                        ? "bg-sky-500"
+                        : route.method === "POST"
+                          ? "bg-green-500"
+                          : route.method === "DELETE"
+                            ? "bg-red-500"
+                            : "bg-orange-500";
 
-            const card = document.createElement("div");
-            card.className =
-                "api-card-wrapper w-full bg-white border-2 border-primary/20 rounded-lg hover:border-primary transition-colors";
-            card.setAttribute("data-search", searchTerms);
+                const card = document.createElement("div");
+                card.className =
+                    "api-card-wrapper w-full bg-white border-2 border-primary/20 rounded-lg hover:border-primary transition-colors";
+                card.setAttribute("data-search", searchTerms);
 
-            card.innerHTML = `
-                <div class="p-3 cursor-pointer select-none" onclick="toggle('${id}')">
-                    <div class="flex justify-between items-center gap-3">
-                        <div class="flex items-center gap-2 overflow-hidden">
-                            <span class="px-1.5 py-0.5 text-[10px] font-bold text-white ${methodColor} rounded font-mono">${route.method}</span>
-                            <code class="font-bold text-xs sm:text-sm truncate font-mono text-slate-700">${route.endpoint}</code>
-                        </div>
-                        <i id="icon-${id}" class="fa-solid fa-plus text-xs text-primary transition-transform duration-300"></i>
+                card.innerHTML = `
+            <div class="p-3 cursor-pointer select-none" onclick="toggle('${id}')">
+                <div class="flex justify-between items-center gap-3">
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <span class="px-1.5 py-0.5 text-[10px] font-bold text-white ${methodColor} rounded font-mono">${route.method}</span>
+                        <code class="font-bold text-xs sm:text-sm truncate font-mono text-slate-700">${route.endpoint}</code>
                     </div>
-                    <p class="text-[10px] text-gray-500 mt-2 font-mono truncate">${route.name}</p>
+                    <i id="icon-${id}" class="fa-solid fa-plus text-xs text-primary transition-transform duration-300"></i>
                 </div>
+                <p class="text-[10px] text-gray-500 mt-2 font-mono truncate">${route.name}</p>
+            </div>
+            
+            <div id="body-${id}" class="hidden animate-slide-down">
+                ${inputsHtml}
                 
-                <div id="body-${id}" class="hidden animate-slide-down">
-                    ${inputsHtml}
+                <div class="p-3 flex gap-2 border-t-2 border-primary/10 bg-gray-50/50">
+                    <button id="btn-exec-${id}" onclick="testReq(this, '${route.endpoint}', '${route.method}', '${id}')" class="flex-1 bg-primary text-white font-bold py-2 hover:bg-violet-700 transition-colors shadow-hard-hover active:shadow-none active:translate-y-[2px] text-[10px] tracking-widest uppercase rounded border border-black min-w-[100px]">
+                        Execute
+                    </button>
+                    <button onclick="copy('${route.endpoint}')" class="px-3 border border-primary/30 bg-white hover:bg-primary/5 rounded" title="Copy URL">
+                        <i class="fa-regular fa-copy text-primary text-xs"></i>
+                    </button>
+                </div>
+
+                <div id="res-area-${id}" class="hidden border-t-4 border-primary/50 bg-slate-900 text-[11px] relative rounded-b-lg overflow-hidden shadow-inner">
+                    <div class="flex justify-between items-center bg-black/40 px-3 py-2 border-b border-white/10">
+                        <div class="flex gap-2 items-center">
+                            <span class="w-2 h-2 rounded-full bg-yellow-400" id="status-dot-${id}"></span>
+                            <span id="status-${id}" class="text-gray-400 font-bold font-mono">WAITING</span>
+                        </div>
+                        <span id="time-${id}" class="text-gray-500 font-mono text-[10px]">--ms</span>
+                    </div>
                     
-                    <div class="p-3 flex gap-2 border-t-2 border-primary/10 bg-gray-50/50">
-                        <button id="btn-exec-${id}" onclick="testReq(this, '${route.endpoint}', '${route.method}', '${id}')" class="flex-1 bg-primary text-white font-bold py-2 hover:bg-violet-700 transition-colors shadow-hard-hover active:shadow-none active:translate-y-[2px] text-[10px] tracking-widest uppercase rounded border border-black min-w-[100px]">
-                            Execute
-                        </button>
-                        <button onclick="copy('${route.endpoint}')" class="px-3 border border-primary/30 bg-white hover:bg-primary/5 rounded" title="Copy URL">
-                            <i class="fa-regular fa-copy text-primary text-xs"></i>
-                        </button>
+                    <div class="absolute top-2 right-2 flex gap-1 z-20">
+                         <a id="dl-btn-${id}" class="hidden bg-green-500/20 text-green-400 border border-green-500/50 px-2 py-0.5 hover:bg-green-500/30 rounded cursor-pointer transition-colors"><i class="fa-solid fa-download"></i></a>
+                         <button onclick="copyRes('${id}')" class="bg-blue-500/20 text-blue-400 border border-blue-500/50 px-2 py-0.5 hover:bg-blue-500/30 rounded transition-colors"><i class="fa-regular fa-clone"></i></button>
+                         <button onclick="reset('${id}')" class="bg-red-500/20 text-red-400 border border-red-500/50 px-2 py-0.5 hover:bg-red-500/30 rounded transition-colors"><i class="fa-solid fa-xmark"></i></button>
                     </div>
 
-                    <div id="res-area-${id}" class="hidden border-t-4 border-primary/50 bg-slate-900 text-[11px] relative rounded-b-lg overflow-hidden shadow-inner">
-                        <div class="flex justify-between items-center bg-black/40 px-3 py-2 border-b border-white/10">
-                            <div class="flex gap-2 items-center">
-                                <span class="w-2 h-2 rounded-full bg-yellow-400" id="status-dot-${id}"></span>
-                                <span id="status-${id}" class="text-gray-400 font-bold font-mono">WAITING</span>
-                            </div>
-                            <span id="time-${id}" class="text-gray-500 font-mono text-[10px]">--ms</span>
-                        </div>
-                        
-                        <div class="absolute top-2 right-2 flex gap-1 z-20">
-                             <a id="dl-btn-${id}" class="hidden bg-green-500/20 text-green-400 border border-green-500/50 px-2 py-0.5 hover:bg-green-500/30 rounded cursor-pointer transition-colors"><i class="fa-solid fa-download"></i></a>
-                             <button onclick="copyRes('${id}')" class="bg-blue-500/20 text-blue-400 border border-blue-500/50 px-2 py-0.5 hover:bg-blue-500/30 rounded transition-colors"><i class="fa-regular fa-clone"></i></button>
-                             <button onclick="reset('${id}')" class="bg-red-500/20 text-red-400 border border-red-500/50 px-2 py-0.5 hover:bg-red-500/30 rounded transition-colors"><i class="fa-solid fa-xmark"></i></button>
-                        </div>
+                    <div id="output-${id}" class="font-mono text-[10px] overflow-x-auto whitespace-pre-wrap break-all max-h-[400px] p-4 custom-scrollbar min-h-[80px] text-gray-300 leading-relaxed"></div>
+                </div>
+            </div>`;
+                grid.appendChild(card);
+            });
+        }
 
-                        <div id="output-${id}" class="font-mono text-[10px] overflow-x-auto whitespace-pre-wrap break-all max-h-[400px] p-4 custom-scrollbar min-h-[80px] text-gray-300 leading-relaxed"></div>
-                    </div>
-                </div>`;
-            grid.appendChild(card);
-        });
+        // render nested folders inside this grid
+        if (child.children && child.children.size) {
+            renderNode(child, grid, fullPath);
+        }
 
-        section.innerHTML = headerBtn;
         section.appendChild(grid);
         container.appendChild(section);
     }
 }
 
-window.toggleCategory = catId => {
-    const grid = document.getElementById(`grid-${catId}`);
-    const arrow = document.getElementById(`arrow-${catId}`);
+function loadEnd(tags) {
+    const container = document.getElementById("api-container");
+    if (!container) return;
+    container.innerHTML = "";
 
+    const tree = buildTree(tags);
+    renderNode(tree, container);
+}
+
+// updated toggleCategory to match safe ids
+window.toggleCategory = safeId => {
+    const grid = document.getElementById(`grid-${safeId}`);
+    const arrow = document.getElementById(`arrow-${safeId}`);
+    if (!grid) return;
     if (grid.classList.contains("hidden")) {
         grid.classList.remove("hidden");
-        arrow.classList.add("rotate-180");
+        arrow?.classList.add("rotate-180");
     } else {
         grid.classList.add("hidden");
-        arrow.classList.remove("rotate-180");
+        arrow?.classList.remove("rotate-180");
     }
 };
 
