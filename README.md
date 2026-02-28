@@ -1,1 +1,3 @@
-# zikaneko-v2
+# api
+
+[***Docs***](https://zikaneko.vercel.app)
