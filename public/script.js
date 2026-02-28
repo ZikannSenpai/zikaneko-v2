@@ -117,7 +117,6 @@ function messeg(msg) {
         toast.classList.add("translate-y-32", "opacity-0");
     }, 3000);
 }
-
 function terminalLog(message, type = "info") {
     const logs = document.getElementById("term-logs");
     if (!logs) return;
