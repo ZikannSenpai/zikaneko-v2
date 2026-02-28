@@ -31,6 +31,38 @@
                 ]
             }
         ],
+        "anime/kuramanime": [
+            {
+                "name": "Kuramanime Home",
+                "endpoint": "/api/anime/kuramanime/home",
+                "filename": "home",
+                "method": "GET",
+                "params": []
+            },
+            {
+                "name": "Kuramanime Detail",
+                "endpoint": "/api/anime/kuramanime/detail",
+                "filename": "detail",
+                "method": "GET",
+                "params": [
+                    {
+                        "name": "slug",
+                        "required": true,
+                        "description": "Anime Slug"
+                    }
+                ]
+            }
+        ],
+
+        "anime/otakudesu": [
+            {
+                "name": "Otakudesu Home",
+                "endpoint": "/api/anime/otakudesu/home",
+                "filename": "home",
+                "method": "GET",
+                "params": []
+            }
+        ],
         "maker": [
             {
                 "name": "Brat Generator",
@@ -173,38 +205,6 @@
                         "description": "Query"
                     }
                 ]
-            }
-        ],
-        "anime/kuramanime": [
-            {
-                "name": "Kuramanime Home",
-                "endpoint": "/api/anime/kuramanime/home",
-                "filename": "home",
-                "method": "GET",
-                "params": []
-            },
-            {
-                "name": "Kuramanime Detail",
-                "endpoint": "/api/anime/kuramanime/detail",
-                "filename": "detail",
-                "method": "GET",
-                "params": [
-                    {
-                        "name": "slug",
-                        "required": true,
-                        "description": "Anime Slug"
-                    }
-                ]
-            }
-        ],
-
-        "anime/otakudesu": [
-            {
-                "name": "Otakudesu Home",
-                "endpoint": "/api/anime/otakudesu/home",
-                "filename": "home",
-                "method": "GET",
-                "params": []
             }
         ]
     }
