@@ -31,16 +31,6 @@
                 ]
             }
         ],
-        "anime": [
-            {
-                "name": "Homepage Anime",
-                "endpoint": "/api/anime/home",
-                "filename": "home",
-                "method": "GET",
-                "params": []
-            }
-        ],
-
         "maker": [
             {
                 "name": "Brat Generator",
