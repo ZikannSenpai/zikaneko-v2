@@ -104,6 +104,21 @@ async function loadReminder() {
     }
 }
 
+function countRoutes(node) {
+    let total = 0;
+    if (node.routes && node.routes.length) {
+        total += node.routes.length;
+    }
+
+    if (node.children && node.children.size) {
+        for (const child of node.children.values()) {
+            total += countRoutes(child);
+        }
+    }
+
+    return total;
+}
+
 function messeg(msg) {
     const toast = document.getElementById("custom-toast");
     const msgBox = document.getElementById("toast-message");
@@ -348,7 +363,7 @@ function renderNode(node, container, pathSoFar = "") {
           <h2 class="text-lg font-display font-bold uppercase tracking-wider">${child.name}</h2>
         </div>
         <div class="flex items-center gap-3">
-          <span class="text-[10px] font-mono bg-primary/10 border border-primary/20 px-2 py-1 rounded text-primary font-bold">${child.routes.length} EP</span>
+          <span class="text-[10px] font-mono bg-primary/10 border border-primary/20 px-2 py-1 rounded text-primary font-bold">${countRoutes(child)} EP</span>
           <i id="arrow-${safeId}" class="cat-arrow fa-solid fa-chevron-down transition-transform duration-300"></i>
         </div>
       </button>
