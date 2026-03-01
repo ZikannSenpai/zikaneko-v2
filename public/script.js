@@ -334,7 +334,9 @@ function renderNode(node, container, pathSoFar = "") {
     for (const child of node.children.values()) {
         const fullPath = pathSoFar ? `${pathSoFar}/${child.name}` : child.name;
         const safeId = safeIdForPath(fullPath);
-
+        console.log("safeId:", safeId);
+        console.log("fullPath:", fullPath);
+        console.log("child:", child);
         // section header
         const section = document.createElement("div");
         section.className = "api-section w-full";
@@ -346,7 +348,7 @@ function renderNode(node, container, pathSoFar = "") {
           <h2 class="text-lg font-display font-bold uppercase tracking-wider">${child.name}</h2>
         </div>
         <div class="flex items-center gap-3">
-          <span class="text-[10px] font-mono bg-primary/10 border border-primary/20 px-2 py-1 rounded text-primary font-bold">${child.routes.length || child.length} EP</span>
+          <span class="text-[10px] font-mono bg-primary/10 border border-primary/20 px-2 py-1 rounded text-primary font-bold">${child.routes.length} EP</span>
           <i id="arrow-${safeId}" class="cat-arrow fa-solid fa-chevron-down transition-transform duration-300"></i>
         </div>
       </button>
